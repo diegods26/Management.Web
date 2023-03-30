@@ -1,5 +1,7 @@
 using Management.Web.Configurations;
+using Management.Web.Contracts;
 using Management.Web.Data;
+using Management.Web.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,6 +22,8 @@ namespace Management.Web
             builder.Services.AddDefaultIdentity<Employee>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             builder.Services.AddAutoMapper(typeof(MapperConfig));
+            builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+            builder.Services.AddScoped<IControlTypeRepository, MyControlTypeRepository>();
 
             builder.Services.AddControllersWithViews();
 

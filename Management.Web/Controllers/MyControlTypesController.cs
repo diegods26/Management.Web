@@ -8,44 +8,40 @@ using Microsoft.EntityFrameworkCore;
 using Management.Web.Data;
 using AutoMapper;
 using Management.Web.Models;
+using Management.Web.Contracts;
 
 namespace Management.Web.Controllers
 {
     public class MyControlTypesController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IControlTypeRepository _controlTypeRepository;
         private readonly IMapper _mapper;
 
-        public MyControlTypesController(ApplicationDbContext context, IMapper mapper)
+        public MyControlTypesController(IControlTypeRepository controlTypeRepository, IMapper mapper)
         {
-            _context = context;
+            _controlTypeRepository = controlTypeRepository;
             _mapper = mapper;
         }
 
         // GET: MyControlTypes
         public async Task<IActionResult> Index()
         {
-            var myControlTypes = _mapper.Map<List<MyControlTypeVM>>(await _context.MyControlTypes.ToListAsync());
-              return _context.MyControlTypes != null 
-                ? View(myControlTypes) 
-                : Problem("Entity set 'ApplicationDbContext.MyControlTypes'  is null.");
+            var myControlTypes = _mapper.Map<List<MyControlTypeVM>>(await _controlTypeRepository.GetAllAsync());
+            return View(myControlTypes);
+                
         }
 
         // GET: MyControlTypes/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null || _context.MyControlTypes == null)
-            {
-                return NotFound();
-            }
-
-            var myControlType = await _context.MyControlTypes
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var myControlType = await _controlTypeRepository.GetAsync(id);
+                     
             if (myControlType == null)
             {
                 return NotFound();
             }
 
+            var myControlTypeVm = _mapper.Map<MyControlTypeVM>(myControlType);
             return View(myControlType);
         }
 
@@ -65,8 +61,8 @@ namespace Management.Web.Controllers
             if (ModelState.IsValid)
             {
                 var myControlType = _mapper.Map<MyControlType>(myControlTypeVM);
-                _context.Add(myControlType);
-                await _context.SaveChangesAsync();
+                await _controlTypeRepository.AddAsync(myControlType);
+
                 return RedirectToAction(nameof(Index));
             }
             return View(myControlTypeVM);
@@ -75,12 +71,7 @@ namespace Management.Web.Controllers
         // GET: MyControlTypes/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null || _context.MyControlTypes == null)
-            {
-                return NotFound();
-            }
-
-            var myControlType = await _context.MyControlTypes.FindAsync(id);
+            var myControlType = await _controlTypeRepository.GetAsync(id);
             if (myControlType == null)
             {
                 return NotFound();
@@ -106,12 +97,11 @@ namespace Management.Web.Controllers
                 try
                 {
                     var myControlType = _mapper.Map<MyControlType>(myControlTypeVM);
-                    _context.Update(myControlType);
-                    await _context.SaveChangesAsync();
+                    await _controlTypeRepository.UpdateAsync(myControlType);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!MyControlTypeExists(myControlTypeVM.Id))
+                    if (!await _controlTypeRepository.Exists(myControlTypeVM.Id))
                     {
                         return NotFound();
                     }
@@ -123,48 +113,20 @@ namespace Management.Web.Controllers
                 return RedirectToAction(nameof(Index));
             }
             return View(myControlTypeVM);
-        }
-
-        // GET: MyControlTypes/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null || _context.MyControlTypes == null)
-            {
-                return NotFound();
-            }
-
-            var myControlType = await _context.MyControlTypes
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (myControlType == null)
-            {
-                return NotFound();
-            }
-
-            return View(myControlType);
-        }
+        }       
 
         // POST: MyControlTypes/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            if (_context.MyControlTypes == null)
-            {
-                return Problem("Entity set 'ApplicationDbContext.MyControlTypes'  is null.");
-            }
-            var myControlType = await _context.MyControlTypes.FindAsync(id);
-            if (myControlType != null)
-            {
-                _context.MyControlTypes.Remove(myControlType);
-            }
-            
-            await _context.SaveChangesAsync();
+            _controlTypeRepository.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
         }
 
-        private bool MyControlTypeExists(int id)
-        {
-          return (_context.MyControlTypes?.Any(e => e.Id == id)).GetValueOrDefault();
-        }
+        //private async Task<bool> MyControlTypeExists(int id)
+        //{
+        //    return await _controlTypeRepository.Exists(id);
+        //}
     }
 }
